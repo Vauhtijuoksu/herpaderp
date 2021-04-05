@@ -1,10 +1,12 @@
 #!/bin/env python3
 
 import asyncio
+import argparse
 import bleak
 import sys
 
 DEVICE_MAC = "CE:F5:71:BE:C3:C3"
+OUTPUT_FMT = "{heartrate}, {ppi}ms"
 
 def find_heartrate_service(services):
     for service in services:
@@ -21,8 +23,14 @@ def find_heartrate_measurement_characteristic(service):
     return None
 
 def read_callback(source, data):
-    print ("♥", data[1])
-    sys.stdout.flush()
+    if (data[0] == 0x10):
+        heartrate = int(data[1])
+        peak_to_peak_ms = int.from_bytes(data[2:3], byteorder='little')
+
+        print(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms))
+
+    else:
+        print ("received unexpected data", file=sys.stderr)
 
 async def run(client):
     while not client.is_connected:
@@ -44,11 +52,22 @@ async def run(client):
     sys.exit(0)
 
 async def main():
+    print("Connecting to", DEVICE_MAC, file=sys.stderr)
     async with bleak.BleakClient(DEVICE_MAC) as client:
         tasks = [ asyncio.ensure_future(run(client)) ]
         await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Channel BTLE HRM data")
+    parser.add_argument("device", help="Heart rate monitor MAC address", type=str)
+    parser.add_argument("--format", help="Format string for output (use {heartrate}, {ppi})", default="{heartrate}", type=str)
+    args = parser.parse_args()
+
+    DEVICE_MAC = args.device
+    if args.format is not None:
+        OUTPUT_FMT = args.format
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(main())
+
