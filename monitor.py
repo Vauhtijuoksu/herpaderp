@@ -7,6 +7,7 @@ import sys
 
 DEVICE_MAC = "CE:F5:71:BE:C3:C3"
 OUTPUT_FMT = "{heartrate}, {ppi}ms"
+OUTPUT_FILE = sys.stdout
 
 def find_heartrate_service(services):
     for service in services:
@@ -25,9 +26,9 @@ def find_heartrate_measurement_characteristic(service):
 def read_callback(source, data):
     if (data[0] == 0x10):
         heartrate = int(data[1])
-        peak_to_peak_ms = int.from_bytes(data[2:3], byteorder='little')
+        peak_to_peak_ms = int.from_bytes(data[2:3], byteorder='little') 
 
-        print(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms))
+        print(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms), file=OUTPUT_FILE)
 
     else:
         print ("received unexpected data", file=sys.stderr)
@@ -61,11 +62,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Channel BTLE HRM data")
     parser.add_argument("device", help="Heart rate monitor MAC address", type=str)
     parser.add_argument("--format", help="Format string for output (use {heartrate}, {ppi})", default="{heartrate}", type=str)
+    parser.add_argument("--output-file", help="file to output to (defaults to stdout)", default=None, type=str)
+
     args = parser.parse_args()
 
     DEVICE_MAC = args.device
     if args.format is not None:
         OUTPUT_FMT = args.format
+
+    if args.output_file is not None:
+        OUTPUT_FILE = args.output_file
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
