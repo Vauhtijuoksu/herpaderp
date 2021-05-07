@@ -71,9 +71,13 @@ if __name__ == "__main__":
         OUTPUT_FMT = args.format
 
     if args.output_file is not None:
-        OUTPUT_FILE = args.output_file
+        OUTPUT_FILE = open(args.output_file, 'w')
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(main())
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(main())
+    finally:
+        if args.output_file is not None:
+            close(OUTPUT_FILE)
 
