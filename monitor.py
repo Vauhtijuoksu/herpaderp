@@ -7,7 +7,7 @@ import sys
 
 DEVICE_MAC = "CE:F5:71:BE:C3:C3"
 OUTPUT_FMT = "{heartrate}, {ppi}ms"
-OUTPUT_FILE = sys.stdout
+OUTPUT_FILE = ""
 
 def find_heartrate_service(services):
     for service in services:
@@ -28,14 +28,13 @@ def read_callback(source, data):
         heartrate = int(data[1])
         peak_to_peak_ms = int.from_bytes(data[2:3], byteorder='little') 
 
-        print(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms), file=OUTPUT_FILE)
+        with open(OUTPUT_FILE, 'w') as file:
+            file.write(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms))
 
     else:
         print ("received unexpected data", file=sys.stderr)
 
 async def run(client):
-    while not client.is_connected:
-        pass
 
     print ("device", DEVICE_MAC, "connected", file=sys.stderr)
 
@@ -47,10 +46,11 @@ async def run(client):
     
     await client.start_notify(heartrate_measurement, read_callback)
 
-    while(True):
-        await asyncio.sleep(60)
-
-    sys.exit(0)
+    while True:
+        if not await client.is_connected():
+            print('test')
+            break
+        await asyncio.sleep(1.0)
 
 async def main():
     print("Connecting to", DEVICE_MAC, file=sys.stderr)
@@ -70,14 +70,18 @@ if __name__ == "__main__":
     if args.format is not None:
         OUTPUT_FMT = args.format
 
-    if args.output_file is not None:
-        OUTPUT_FILE = open(args.output_file, 'w')
+    if args.output_file is None or args.output_file == "":
+        print("pls gibe file to output")
+        sys.exit(0)
+    OUTPUT_FILE=args.output_file
 
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
-    finally:
-        if args.output_file is not None:
-            close(OUTPUT_FILE)
+    while True:
+        with open(OUTPUT_FILE, 'w') as file:
+            file.write("")
 
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(main())
+        except Exception as e:
+            print(e, file=sys.stderr)
