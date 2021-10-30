@@ -4,6 +4,7 @@ import asyncio
 import argparse
 import bleak
 import sys
+import time
 
 DEVICE_MAC = "CE:F5:71:BE:C3:C3"
 OUTPUT_FMT = "{heartrate}, {ppi}ms"
@@ -30,6 +31,7 @@ def read_callback(source, data):
 
         with open(OUTPUT_FILE, 'w') as file:
             file.write(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms))
+        print(f'{OUTPUT_FILE} {heartrate}')
 
     else:
         print ("received unexpected data", file=sys.stderr)
@@ -48,7 +50,6 @@ async def run(client):
 
     while True:
         if not await client.is_connected():
-            print('test')
             break
         await asyncio.sleep(1.0)
 
@@ -85,3 +86,6 @@ if __name__ == "__main__":
             loop.run_until_complete(main())
         except Exception as e:
             print(e, file=sys.stderr)
+            if str(e) == f"Device with address {DEVICE_MAC} was not found.":
+                time.sleep(15)
+        time.sleep(3)
