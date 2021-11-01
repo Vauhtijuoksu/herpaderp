@@ -1,11 +1,22 @@
 # HEartRatePythonAsyncDeviceReaderProgram
 
-## How to get this into stream
+This branch is dedicated for running herpaderp in external machine and serving heart rates to web
 
-For example, do this:
+## How to install:
 
+Create venv
 ```
-./monitor.py AA:BB:CC:DD:EE:FF --format="♥ {heartrate}" > heartrate.txt
+python -m venv ./venv 
 ```
-
-And use text plugin to read the last line from heartrate.txt
+Activate venv
+```
+source venv/bin/activate
+```
+Install deps
+```
+pip install pip3-deps 
+```
+## How to run:
+```
+./launch.sh
+```
