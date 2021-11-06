@@ -18,5 +18,5 @@ pip install pip3-deps
 ```
 ## How to run:
 ```
-./launch.sh
+./launch.sh <path-to-script>
 ```

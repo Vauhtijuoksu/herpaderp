@@ -1,5 +1,6 @@
 from http.server import HTTPServer, SimpleHTTPRequestHandler, test
 import sys
+import os
 
 
 class CORSRequestHandler (SimpleHTTPRequestHandler):
@@ -9,4 +10,5 @@ class CORSRequestHandler (SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    os.chdir(sys.argv[2])
     test(CORSRequestHandler, HTTPServer, port=int(sys.argv[1]) if len(sys.argv) > 1 else 8000)
