@@ -3,7 +3,7 @@
 source $1/venv/bin/activate
 
 mkdir $1/html
-python3 $1/WebServer.py 8000 $1/html/ &
+python3 $1/apisender.py --input-file $1/html/sensor1.txt $1/html/sensor2.txt $1/html/sensor3.txt $1/html/sensor4.txt $1/html/sensor5.txt &
 
 python3 $1/monitor.py DB:6B:EA:95:D0:AE --format="{heartrate}" --output-file="$1/html/sensor1.txt" &
 python3 $1/monitor.py E0:3E:9B:CF:AC:80 --format="{heartrate}" --output-file="$1/html/sensor2.txt" &
