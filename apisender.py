@@ -45,8 +45,11 @@ if __name__ == "__main__":
             except FileNotFoundError:
                 heart_rates.append(0)
 
-        if not heart_rates_latest == heart_rates:
-            print(heart_rates)
-            patchStreamMetadata(config, {'heart_rates': heart_rates})
-            heart_rates_latest = heart_rates
-        time.sleep(1)
+        try:
+            if not heart_rates_latest == heart_rates:
+                print(heart_rates)
+                patchStreamMetadata(config, {'heart_rates': heart_rates})
+                heart_rates_latest = heart_rates
+        except:
+            time.sleep(2)
+        time.sleep(2)
