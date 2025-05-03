@@ -11,8 +11,9 @@ def patchStreamMetadata(config, value):
     if r.status_code == 200:
         return json.loads(r.content)
     else:
-        print(r.status_code)
-        print(r.content)
+        if args.verbosity > 0:
+            print(r.status_code)
+            print(r.content)
 
 
 if __name__ == "__main__":
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="apisender")
     parser.add_argument("--input-file",  nargs='+', help="filenames(s) to input to ", required=True, type=str)
     parser.add_argument("--config-file", help="filenames for config file", required=True, type=str)
+    parser.add_argument("--verbosity", help="print much?", default=0, type=int)
 
     args = parser.parse_args()
 
@@ -47,9 +49,10 @@ if __name__ == "__main__":
 
         try:
             if not heart_rates_latest == heart_rates:
-                print(heart_rates)
+                if args.verbosity > 1:
+                    print(heart_rates)
                 patchStreamMetadata(config, {'heart_rates': heart_rates})
                 heart_rates_latest = heart_rates
         except:
-            time.sleep(2)
+            time.sleep(5)
         time.sleep(2)
