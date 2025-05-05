@@ -3,6 +3,7 @@
 import asyncio
 import argparse
 import random
+import json
 
 import bleak
 import sys
@@ -30,8 +31,9 @@ def find_heartrate_measurement_characteristic(service):
 def read_callback(source, data):
     if (data[0] == 0x10):
         heartrate = int(data[1])
-        peak_to_peak_ms = int.from_bytes(data[2:3], byteorder='little') 
+        peak_to_peak_ms = int.from_bytes(data[2:3], byteorder='little')
 
+        update_status('OK', heartrate)
         with open(OUTPUT_FILE, 'w') as ff:
             ff.write(OUTPUT_FMT.format(heartrate=heartrate, ppi=peak_to_peak_ms))
         if args.verbosity > 2:
@@ -39,9 +41,11 @@ def read_callback(source, data):
 
     else:
         if args.verbosity > 0:
+            update_status('ERROR')
             print (f'{args.number} received unexpected data', file=sys.stderr)
 
 async def run(client):
+    update_status('CONNECTED')
     if args.verbosity > 0:
         print ("device", DEVICE_MAC, "connected", file=sys.stderr)
 
@@ -60,6 +64,7 @@ async def run(client):
         await asyncio.sleep(1.0)
 
 async def main():
+    update_status('CONNECTING')
     if args.verbosity > 0:
         print("Connecting to", DEVICE_MAC, file=sys.stderr)
     async with bleak.BleakClient(DEVICE_MAC) as client:
@@ -87,21 +92,45 @@ def check_que():
         print(f'{que} {args.number}')
     found = False
     i = 0
+    queN = -1
     for s in que:
         if int(s) == args.number:
             found = True
+            queN = i
             if i == 0:
                 que = que[1:]
                 with open(QUEUE_FILE, 'w') as f:
                     f.write(que)
-                return True
+                return 0
             break
         i += 1
     if not found:
         with open(QUEUE_FILE, 'w') as f:
             f.write(que + str(args.number))
-    return False
+        queN = len(que)
+    return queN
 
+
+def update_status(status, value=-1, code=-1):
+    if not os.path.isfile(STATUS_FILE):
+        with open(STATUS_FILE, 'w') as json_data:
+            json.dump([{"0":{}}], json_data)
+    sid = str(args.number)
+    with open(STATUS_FILE, 'r') as json_data:
+        data = json.load(json_data)
+        json_data.close()
+    d = data[0]
+    if status == "INIT":
+        d[sid] = {'status': status, 'value':0, 'code':0, 'time': int(time.time())}
+    else:
+        d[sid]['status'] = status
+        d[sid]['time'] = int(time.time())
+        if value >= 0:
+            d[sid]['value'] = value
+        if code >= 0:
+            d[sid]['code'] = code
+    with open(STATUS_FILE, 'w') as json_data:
+        json.dump([d], json_data)
 
 
 
@@ -124,12 +153,14 @@ if __name__ == "__main__":
         print("pls gibe file to output")
         sys.exit(0)
     OUTPUT_FILE=args.data_dir + "sensor" + str(args.number) + ".txt"
+    STATUS_FILE=args.data_dir + "serve/status.json"
     QUEUE_FILE=args.data_dir + "que.txt"
 
-
+    update_status('INIT')
     join_que()
     while True:
-        if check_que():
+        que_number = check_que()
+        if que_number == 0:
             with open(OUTPUT_FILE, 'w') as file:
                 file.write("")
             try:
@@ -137,8 +168,12 @@ if __name__ == "__main__":
                 asyncio.set_event_loop(loop)
                 loop.run_until_complete(main())
             except Exception as e:
+                update_status('NOTFOUND')
                 if args.verbosity > 0:
                     print(e, file=sys.stderr)
                 time.sleep(5+random.random())
             time.sleep(3+random.random())
+        else:
+            update_status('QUEUE', -1, que_number)
         time.sleep(1+random.random())
+
